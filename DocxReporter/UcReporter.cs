@@ -122,7 +122,7 @@ namespace DocxSearcher
             try
             {
                 var files = new List<string>();
-                int row = dgvCases.Rows.Count - 1;
+                int row = dgvCases.Rows.Count;
 
                 for (int i = 0; i < row; i++)
                 {
