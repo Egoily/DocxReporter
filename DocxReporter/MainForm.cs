@@ -12,7 +12,7 @@ namespace DocxSearcher
             InitializeComponent();
 
             ucExplorer.AddToReportList += UcExplorer_AddToReportList;
-
+          
         }
 
         private void UcExplorer_AddToReportList(List<Tuple<string, string>> items)

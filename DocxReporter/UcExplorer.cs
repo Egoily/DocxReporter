@@ -16,31 +16,49 @@ namespace DocxSearcher
         public UcExplorer()
         {
             InitializeComponent();
-            this.txtDirectory.Text = GlobalSettings.Data.Configurations.DefaultDirectory;
+            this.TxtDirectory.Text = GlobalSettings.Data.Configurations.DefaultDirectory;
         }
 
-        private void btnSearchDirectory_Click(object sender, EventArgs e)
+
+
+        public void ExpandCollapse(bool isExpand)
+        {
+            ePanelSearch.Expand = isExpand;
+        }
+
+        private void ePanel_SizeChanged(object sender, EventArgs e)
+        {
+            var ePanel = sender as EgoDevil.Utilities.UI.EPanels.EPanel;
+
+            int x = ePanel.Width - this.Width;
+            int y = ePanel.Height - this.Height;
+
+            this.Left -= x;
+            this.Top -= y;
+            this.Size = ePanel.Size;
+        }
+        private void BtnSearchDirectory_Click(object sender, EventArgs e)
         {
             var fbd = new FolderBrowserDialog();
-            fbd.SelectedPath = this.txtDirectory.Text;
+            fbd.SelectedPath = this.TxtDirectory.Text;
 
             if (fbd.ShowDialog(this) == DialogResult.OK)
             {
-                this.txtDirectory.Text = fbd.SelectedPath;
+                this.TxtDirectory.Text = fbd.SelectedPath;
             }
         }
 
-        private void btnSearch_Click(object sender, EventArgs e)
+        private void BtnSearch_Click(object sender, EventArgs e)
         {
-            this.lvSearchResult.Items.Clear();
+            this.LvSearchResult.Items.Clear();
 
             try
             {
-                foreach (var filePath in Search(this.txtDirectory.Text, this.txtSearch.Text, this.cBoxUseSubdirectories.Checked, this.cBoxCaseSensitive.Checked, this.rBtnRegex.Checked))
+                foreach (var filePath in Search(this.TxtDirectory.Text, this.TxtKeyword.Text, this.CboxUseSubdirectories.Checked, this.CboxCaseSensitive.Checked, this.RbtnRegex.Checked, RbtnTitle.Checked))
                 {
                     var file = new FileInfo(filePath);
 
-                    this.lvSearchResult.Items.Add(new ListViewItem(new string[] { file.Name, string.Format("{0:0.0}", file.Length / 1024d), file.FullName }));
+                    this.LvSearchResult.Items.Add(new ListViewItem(new string[] { file.Name, string.Format("{0:0.0}", file.Length / 1024d), file.FullName }));
                 }
             }
             catch (Exception ex)
@@ -49,7 +67,7 @@ namespace DocxSearcher
             }
         }
 
-        private void resultListView_ItemActivate(object sender, EventArgs e)
+        private void LvSearchResult_ItemActivate(object sender, EventArgs e)
         {
             string filePath = ((ListView)sender).SelectedItems[0].SubItems[2].Text;
             if (File.Exists(filePath))
@@ -58,37 +76,18 @@ namespace DocxSearcher
             }
         }
 
-        private static IEnumerable<string> Search(string directory, string searchString, bool searchSubdirectories, bool caseSensitive, bool useRegex)
+
+        private void TsmiOpen_Click(object sender, EventArgs e)
         {
-            var isMatch = useRegex ? new Predicate<string>(x => Regex.IsMatch(x, searchString, caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase))
-                : new Predicate<string>(x => x.IndexOf(searchString, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) >= 0);
-
-            foreach (var filePath in Directory.GetFiles(directory, "*.docx", searchSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
-            {
-                string docxText;
-
-                using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                {
-                    docxText = new DocxToStringConverter(stream).Convert();
-                }
-
-                if (isMatch(docxText))
-                {
-                    yield return filePath;
-                }
-            }
-        }
-        private void tsmiOpen_Click(object sender, EventArgs e)
-        {
-            string filePath = lvSearchResult.SelectedItems[0].SubItems[2].Text;
+            string filePath = LvSearchResult.SelectedItems[0].SubItems[2].Text;
             if (File.Exists(filePath))
             {
                 Process.Start(filePath);
             }
         }
-        private void tsmiAddToReportList_Click(object sender, EventArgs e)
+        private void TsmiAddToReportList_Click(object sender, EventArgs e)
         {
-            if (lvSearchResult.SelectedItems == null || lvSearchResult.SelectedItems.Count == 0)
+            if (LvSearchResult.SelectedItems == null || LvSearchResult.SelectedItems.Count == 0)
             {
                 return;
             }
@@ -96,7 +95,7 @@ namespace DocxSearcher
             if (AddToReportList != null)
             {
                 List<Tuple<string, string>> items = new List<Tuple<string, string>>();
-                foreach (var item in lvSearchResult.SelectedItems)
+                foreach (var item in LvSearchResult.SelectedItems)
                 {
                     var lvi = item as ListViewItem;
                     items.Add(new Tuple<string, string>(lvi.SubItems[0].Text, lvi.SubItems[2].Text));
@@ -106,14 +105,59 @@ namespace DocxSearcher
             }
         }
 
-        private void resultListView_MouseClick(object sender, MouseEventArgs e)
+        private void LvSearchResult_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                this.contextMenuStrip.Show(lvSearchResult, e.Location);//鼠标右键按下弹出菜单
+                this.contextMenuStrip.Show(LvSearchResult, e.Location);//鼠标右键按下弹出菜单
             }
         }
 
+        private static IEnumerable<string> Search(string directory, string searchString, bool searchSubdirectories, bool caseSensitive, bool useRegex, bool searchInTitle)
+        {
+            var isMatch = useRegex ? new Predicate<string>(x => Regex.IsMatch(x, searchString, caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase))
+                : new Predicate<string>(x => x.IndexOf(searchString, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) >= 0);
 
+            var files = Directory.GetFiles(directory, "*.docx", searchSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+            foreach (var filePath in files)
+            {
+                string docxText = string.Empty;
+
+
+                if (searchInTitle)
+                {
+                    docxText = System.IO.Path.GetFileNameWithoutExtension(filePath);
+                }
+                else
+                {
+                    try
+                    {
+                        using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            docxText = new DocxToStringConverter(stream).Convert();
+                        }
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                if (!string.IsNullOrEmpty(docxText) && isMatch(docxText))
+                {
+                    yield return filePath;
+                }
+
+            }
+        }
+
+        private void LvSearchResult_ItemDrag(object sender, ItemDragEventArgs e)
+        {
+
+            var files = new List<string>();
+            foreach (ListViewItem item in LvSearchResult.SelectedItems)
+            {
+                files.Add(item.SubItems[2].Text);
+            }
+            LvSearchResult.DoDragDrop(files.ToArray(), DragDropEffects.Link);
+        }
     }
 }

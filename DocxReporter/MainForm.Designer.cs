@@ -29,29 +29,13 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.ucReporter = new DocxSearcher.UcReporter();
-            this.ucExplorer = new DocxSearcher.UcExplorer();
             this.menuStrip = new System.Windows.Forms.MenuStrip();
             this.tsmiSystem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmiSettings = new System.Windows.Forms.ToolStripMenuItem();
+            this.ucReporter = new DocxSearcher.UcReporter();
+            this.ucExplorer = new DocxSearcher.UcExplorer();
             this.menuStrip.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // ucReporter
-            // 
-            this.ucReporter.Dock = System.Windows.Forms.DockStyle.Right;
-            this.ucReporter.Location = new System.Drawing.Point(715, 25);
-            this.ucReporter.Name = "ucReporter";
-            this.ucReporter.Size = new System.Drawing.Size(269, 537);
-            this.ucReporter.TabIndex = 1;
-            // 
-            // ucExplorer
-            // 
-            this.ucExplorer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.ucExplorer.Location = new System.Drawing.Point(0, 25);
-            this.ucExplorer.Name = "ucExplorer";
-            this.ucExplorer.Size = new System.Drawing.Size(984, 537);
-            this.ucExplorer.TabIndex = 0;
             // 
             // menuStrip
             // 
@@ -77,6 +61,22 @@
             this.tsmiSettings.Size = new System.Drawing.Size(100, 22);
             this.tsmiSettings.Text = "设置";
             this.tsmiSettings.Click += new System.EventHandler(this.tsmiSettings_Click);
+            // 
+            // ucReporter
+            // 
+            this.ucReporter.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.ucReporter.Location = new System.Drawing.Point(0, 25);
+            this.ucReporter.Name = "ucReporter";
+            this.ucReporter.Size = new System.Drawing.Size(441, 537);
+            this.ucReporter.TabIndex = 1;
+            // 
+            // ucExplorer
+            // 
+            this.ucExplorer.Dock = System.Windows.Forms.DockStyle.Right;
+            this.ucExplorer.Location = new System.Drawing.Point(441, 25);
+            this.ucExplorer.Name = "ucExplorer";
+            this.ucExplorer.Size = new System.Drawing.Size(543, 537);
+            this.ucExplorer.TabIndex = 0;
             // 
             // MainForm
             // 

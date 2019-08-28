@@ -13,6 +13,7 @@ namespace DocxSearcher
         public UcReporter()
         {
             InitializeComponent();
+
         }
 
         private void ePanel_SizeChanged(object sender, EventArgs e)
@@ -57,37 +58,37 @@ namespace DocxSearcher
             {
                 foreach (var item in items)
                 {
-                    dgvCases.Rows.Add(item.Item1, item.Item2);
+                    DgviewCases.Rows.Add(item.Item1, item.Item2);
                 }
             }
 
         }
         public void RemoveCase()
         {
-            if (dgvCases.SelectedRows != null && dgvCases.SelectedRows.Count > 0)
+            if (DgviewCases.SelectedRows != null && DgviewCases.SelectedRows.Count > 0)
             {
-                foreach (var item in dgvCases.SelectedRows)
+                foreach (var item in DgviewCases.SelectedRows)
                 {
                     var dgv = item as DataGridViewRow;
-                    dgvCases.Rows.Remove(dgv);
+                    DgviewCases.Rows.Remove(dgv);
                 }
-                dgvCases.Refresh();
+                DgviewCases.Refresh();
             }
         }
 
         private void MoveCase(bool isUp)
         {
-            if (dgvCases.SelectedRows == null || dgvCases.SelectedRows.Count == 0)
+            if (DgviewCases.SelectedRows == null || DgviewCases.SelectedRows.Count == 0)
             {
                 return;
             }
-            int selectedIndex = dgvCases.CurrentRow.Index;
+            int selectedIndex = DgviewCases.CurrentRow.Index;
             if (selectedIndex <= 0 && isUp)
             {
                 //To the Top
                 return;
             }
-            if (selectedIndex >= 0 && !isUp && selectedIndex >= dgvCases.RowCount - 1)
+            if (selectedIndex >= 0 && !isUp && selectedIndex >= DgviewCases.RowCount - 1)
             {
                 //To the Buttom
                 return;
@@ -95,15 +96,15 @@ namespace DocxSearcher
 
             if (isUp)
             {
-                var preRow = this.dgvCases.Rows[selectedIndex - 1];
-                this.dgvCases.Rows.RemoveAt(selectedIndex - 1);
-                this.dgvCases.Rows.Insert((selectedIndex), preRow);
+                var preRow = this.DgviewCases.Rows[selectedIndex - 1];
+                this.DgviewCases.Rows.RemoveAt(selectedIndex - 1);
+                this.DgviewCases.Rows.Insert((selectedIndex), preRow);
             }
             else
             {
-                var nextRow = this.dgvCases.Rows[selectedIndex + 1];
-                this.dgvCases.Rows.RemoveAt(selectedIndex + 1);
-                this.dgvCases.Rows.Insert((selectedIndex == 0 ? 0 : selectedIndex - 1), nextRow);
+                var nextRow = this.DgviewCases.Rows[selectedIndex + 1];
+                this.DgviewCases.Rows.RemoveAt(selectedIndex + 1);
+                this.DgviewCases.Rows.Insert((selectedIndex == 0 ? 0 : selectedIndex - 1), nextRow);
             }
 
         }
@@ -122,19 +123,22 @@ namespace DocxSearcher
             try
             {
                 var files = new List<string>();
-                int row = dgvCases.Rows.Count;
+                int row = DgviewCases.Rows.Count;
 
                 for (int i = 0; i < row; i++)
                 {
-                    string path = dgvCases.Rows[i].Cells["colFilePath"].Value.ToString();
+                    string path = DgviewCases.Rows[i].Cells["ColFilePath"].Value.ToString();
                     if (!files.Contains(path))
                     {
                         files.Add(path);
                     }
                 }
+                //var docxWriter = new DocxWriter(fileName);
+                //docxWriter.AppendDocuments(files.ToArray());
 
-                var docxWriter = new DocxWriter(fileName);
-                docxWriter.AppendDocuments(files.ToArray());
+                var template = @"Template/TypicalCaseRetrievalTemplate.dotx";
+                var docxWriter = new DocxWriter(fileName, template);
+                docxWriter.AppendDocumentsWithTemplate(files.ToArray());
 
                 return true;
             }
@@ -144,11 +148,43 @@ namespace DocxSearcher
             }
 
         }
-    
-        private void BtnGenerate_Click(object sender, EventArgs e)
+        private void TsbtnAdd_Click(object sender, EventArgs e)
+        {
+            var ofd = new OpenFileDialog()
+            {
+                Multiselect = true,
+                Filter = "(*.doc;*.docx)|*.doc;*.docx",
+            };
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+
+                if (ofd.FileNames != null)
+                {
+                    AddCasesByFilePath(ofd.FileNames);
+                }
+            }
+        }
+
+        private void AddCasesByFilePath(string[] files)
+        {
+            if (files == null)
+            {
+                return;
+            }
+
+            List<Tuple<string, string>> items = new List<Tuple<string, string>>();
+            foreach (var file in files)
+            {
+                var fileInfo = new FileInfo(file);
+                items.Add(new Tuple<string, string>(fileInfo.Name, fileInfo.FullName));
+            }
+            AddCase(items);
+        }
+
+        private void TsbtnGenerate_Click(object sender, EventArgs e)
         {
 
-            if (dgvCases.RowCount <= 0)
+            if (DgviewCases.RowCount <= 0)
             {
                 MessageBox.Show("请加入检索文档", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -157,26 +193,50 @@ namespace DocxSearcher
             {
                 Filter = "(*.docx)|*.docx|(*.doc)|*.doc",
             };
-            sfd.ShowDialog();
-            if (string.IsNullOrEmpty(sfd.FileName))
+            if (sfd.ShowDialog() == DialogResult.OK)
             {
-                return;
-            }
-            BtnBrowse.Visible = false;
-            _reportFileName = sfd.FileName;
-            _reportGenerated = GenerateReport(_reportFileName);
-            BtnBrowse.Visible = _reportGenerated;
-            if (_reportGenerated)
-            {
-                MessageBox.Show("生成检索报告成功", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            else
-            {
-                MessageBox.Show("生成检索报告成功", "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (string.IsNullOrEmpty(sfd.FileName))
+                {
+                    return;
+                }
+
+                _reportFileName = sfd.FileName;
+                _reportGenerated = GenerateReport(_reportFileName);
+
+                if (_reportGenerated)
+                {
+                    DgviewReport.Rows.Clear();
+                    var fileInfo = new FileInfo(_reportFileName);
+
+                    DgviewReport.Rows.Add(fileInfo.Name, fileInfo.FullName);
+                    MessageBox.Show("生成检索报告成功", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("生成检索报告失败", "提示", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
-        private void BtnBrowse_Click(object sender, EventArgs e)
+
+        private void TsbtnUp_Click(object sender, EventArgs e)
+        {
+            MoveUpCase();
+        }
+
+        private void TsbtnDown_Click(object sender, EventArgs e)
+        {
+            MoveDownCase();
+        }
+        private void TsbtnDelete_Click(object sender, EventArgs e)
+        {
+            RemoveCase();
+        }
+
+
+
+
+        private void DgviewReport_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
         {
             if (File.Exists(_reportFileName))
             {
@@ -184,28 +244,106 @@ namespace DocxSearcher
             }
         }
 
-        private void BtnUp_Click(object sender, EventArgs e)
+        private void DgviewCases_DragEnter(object sender, DragEventArgs e)
         {
-            MoveUpCase();
+
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Link;
+            }
+            else if (e.Data.GetDataPresent(typeof(List<string>)))
+            {
+                e.Effect = DragDropEffects.Link;
+            }
+            else if (e.Data.GetDataPresent(typeof(string[])))
+            {
+                e.Effect = DragDropEffects.Link;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.Move;
+            }
+        }
+        private void DgviewCases_DragDrop(object sender, DragEventArgs e)
+        {
+
+            if (e.Effect == DragDropEffects.Link)
+            {
+
+                if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    string[] filePath = (string[])e.Data.GetData(DataFormats.FileDrop);
+                    AddCasesByFilePath(filePath);
+                }
+                else if (e.Data.GetDataPresent(typeof(List<string>)))
+                {
+                    var filePath = (List<string>)e.Data.GetData(typeof(List<string>));
+                    AddCasesByFilePath(filePath.ToArray());
+                }
+                else if (e.Data.GetDataPresent(typeof(string[])))
+                {
+                    var filePath = (string[])e.Data.GetData(typeof(string[]));
+                    AddCasesByFilePath(filePath);
+                }
+            }
+
+            else if (e.Effect == DragDropEffects.Move)
+            {
+                if (e.Data.GetDataPresent(typeof(DataGridViewRow)))
+                {
+                    int idx = GetRowFromPoint(e.X, e.Y);
+                    if (idx < 0)
+                    {
+                        return;
+                    }
+                    DataGridViewRow row = (DataGridViewRow)e.Data.GetData(typeof(DataGridViewRow));
+                    DgviewCases.Rows.Remove(row);
+                    selectionIdx = idx;
+                    DgviewCases.Rows.Insert(idx, row);
+
+                }
+
+            }
         }
 
-        private void BtnDown_Click(object sender, EventArgs e)
+        private void DgviewCases_CellMouseMove(object sender, DataGridViewCellMouseEventArgs e)
         {
-            MoveDownCase();
+            if ((e.Button == MouseButtons.Left))
+            {
+                if ((e.RowIndex > -1))
+                {
+                    DgviewCases.DoDragDrop(DgviewCases.Rows[e.RowIndex], DragDropEffects.Move);
+                }
+            }
+        }
+
+        private int selectionIdx = 0;
+
+        private int GetRowFromPoint(int x, int y)
+        {
+            for (int i = 0; i < DgviewCases.RowCount; i++)
+            {
+                Rectangle rec = DgviewCases.GetRowDisplayRectangle(i, false);
+                if (DgviewCases.RectangleToScreen(rec).Contains(x, y))
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private void DgviewCases_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
+        {
+            if (selectionIdx > -1)
+            {
+
+                DgviewCases.Rows[selectionIdx].Selected = true;
+
+                DgviewCases.CurrentCell = DgviewCases.Rows[selectionIdx].Cells[0];
+
+            }
         }
 
 
-
-        private void BtnDelete_Click(object sender, EventArgs e)
-        {
-            RemoveCase();
-        }
-
-        private void ePanel_PanelExpanding(object sender, EgoDevil.Utilities.UI.EPanels.XPanderStateChangeEventArgs e)
-        {
-            BtnBrowse.Visible = _reportGenerated;
-        }
-
-  
     }
 }

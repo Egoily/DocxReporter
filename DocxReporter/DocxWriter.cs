@@ -9,21 +9,46 @@ namespace DocxSearcher
     public class DocxWriter : IDisposable
     {
 
-        public string FileName { get; set; }
-
         private Document _Document;
-        public DocxWriter(string fileName)
+
+
+        /// <summary>
+        /// 模板文件名
+        /// </summary>
+        public string TemplateFileName { get; protected set; }
+        /// <summary>
+        /// 保存文件名
+        /// </summary>
+        public string SaveFileName { get; protected set; }
+
+
+
+        private void InitDocument()
         {
-            FileName = fileName;
-            if (File.Exists(FileName))
+            if (File.Exists(TemplateFileName))
             {
-                _Document = new Document(fileName);
+                _Document = new Document(TemplateFileName);
             }
             else
             {
                 _Document = new Document();
             }
         }
+
+        public DocxWriter(string fileName)
+        {
+            SaveFileName = fileName;
+            InitDocument();
+        }
+
+        public DocxWriter(string fileName, string templateFileName)
+        {
+            SaveFileName = fileName;
+            TemplateFileName = templateFileName;
+            InitDocument();
+        }
+
+
 
         public void AppendDocuments(string[] files)
         {
@@ -67,14 +92,62 @@ namespace DocxSearcher
             builder.CurrentParagraph.ParagraphFormat.Alignment = ParagraphAlignment.Center;
 
             _Document.UpdateFields();
-            //_Document.UpdateListLabels();
+            _Document.UpdateListLabels();
             _Document.UpdatePageLayout();
-            //_Document.UpdateTableLayout();
-            //_Document.UpdateWordCount();
-            _Document.Save(FileName);
+            _Document.UpdateTableLayout();
+            _Document.UpdateWordCount();
+            _Document.Save(SaveFileName);
 
         }
 
+
+        public void AppendDocumentsWithTemplate(string[] files)
+        {
+            DocumentBuilder builder = new DocumentBuilder(_Document);
+
+            if (builder.MoveToBookmark("Year"))
+            {
+                builder.Write(DateTime.Now.Year.ToString());
+            }
+            if (builder.MoveToBookmark("Month"))
+            {
+                builder.Write(DateTime.Now.Month.ToString());
+            }
+
+            if (builder.MoveToBookmark("Day"))
+            {
+                builder.Write(DateTime.Now.Day.ToString());
+            }
+
+
+            builder.MoveToBookmark("MainBody");
+
+            foreach (var file in files)
+            {
+                if (File.Exists(file))
+                {
+                    var appendDoc = new Document(file);
+                    foreach (var section in appendDoc.Sections)
+                    {
+                        ((Section)section).HeadersFooters.Clear();
+                    }
+                    RemovePage(appendDoc);
+                    RemoveTableOfContents(appendDoc);
+                    // Set the appended document to start on a new page.
+                    //appendDoc.FirstSection.PageSetup.SectionStart = SectionStart.NewPage;
+                    _Document.AppendDocument(appendDoc, ImportFormatMode.KeepSourceFormatting);
+                }
+
+            }
+
+            _Document.UpdateFields();
+            _Document.UpdateListLabels();
+            _Document.UpdatePageLayout();
+            _Document.UpdateTableLayout();
+            _Document.UpdateWordCount();
+            _Document.Save(SaveFileName);
+
+        }
 
 
         public void CombineDocuments(string[] files)
@@ -107,7 +180,7 @@ namespace DocxSearcher
             _Document.UpdatePageLayout();
             _Document.UpdateTableLayout();
             _Document.UpdateWordCount();
-            _Document.Save(FileName);
+            _Document.Save(SaveFileName);
 
         }
 
@@ -124,7 +197,7 @@ namespace DocxSearcher
 
                 RemoveTableOfContents(doc);
 
-                doc.Save(FileName);
+                doc.Save(SaveFileName);
             }
         }
 
